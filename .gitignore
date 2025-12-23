@@ -1,0 +1,43 @@
+# OpenSpiel source (cloned separately)
+open_spiel/
+
+# Experiments output
+experiments/results/
+experiments/*.log
+*.csv
+*.pkl
+*.npy
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+*.so
+.eggs/
+*.egg-info/
+.venv/
+venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts (handled by Docker volume, but just in case)
+build/
+
+# Secrets (never commit these)
+*.json
+!cloudbuild.json
+credentials/
+.env
+.env.local
+!.env.example
+*.zip

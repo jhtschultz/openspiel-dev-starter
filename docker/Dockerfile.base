@@ -1,0 +1,47 @@
+# Base development image with your personal tooling
+# Build once, use everywhere
+FROM ubuntu:22.04
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+# Core development tools
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    git \
+    curl \
+    wget \
+    vim \
+    tmux \
+    htop \
+    unzip \
+    sudo \
+    openssh-client \
+    ca-certificates \
+    locales \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set up locale
+RUN locale-gen en_US.UTF-8
+ENV LANG=en_US.UTF-8
+ENV LC_ALL=en_US.UTF-8
+
+# Create dev user (so you're not root)
+RUN useradd -m -s /bin/bash dev && \
+    echo "dev ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+USER dev
+WORKDIR /home/dev
+
+# ============================================
+# YOUR DOTFILES - edit files in docker/dotfiles/
+# ============================================
+COPY --chown=dev:dev dotfiles/.bashrc /home/dev/.bashrc_custom
+COPY --chown=dev:dev dotfiles/.vimrc /home/dev/.vimrc
+COPY --chown=dev:dev dotfiles/.tmux.conf /home/dev/.tmux.conf
+
+# Append custom bashrc to default (preserves system defaults)
+RUN cat /home/dev/.bashrc_custom >> /home/dev/.bashrc && \
+    rm /home/dev/.bashrc_custom
+
+CMD ["/bin/bash"]
