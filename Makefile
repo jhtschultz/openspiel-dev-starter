@@ -58,12 +58,21 @@ stop: ## Stop development environment
 build: ## Build OpenSpiel (inside container, incremental)
 	docker compose exec dev bash -c "cd /home/dev/open_spiel && ./open_spiel/scripts/build_and_run_tests.sh"
 
+.PHONY: build-init
+build-init: ## First-time build: fetch deps + compile (no tests)
+	docker compose exec dev bash -c '\
+		cd /home/dev/open_spiel && \
+		./install.sh && \
+		mkdir -p build && cd build && \
+		cmake -DCMAKE_BUILD_TYPE=Release ../open_spiel && \
+		make -j$$(nproc)'
+
 .PHONY: build-fast
-build-fast: ## Quick build without tests
-	docker compose exec dev bash -c "\
+build-fast: ## Quick rebuild without tests (run build-init first)
+	docker compose exec dev bash -c '\
 		cd /home/dev/open_spiel/build && \
 		cmake -DCMAKE_BUILD_TYPE=Release ../open_spiel && \
-		make -j$$(nproc)"
+		make -j$$(nproc)'
 
 .PHONY: test
 test: ## Run tests
@@ -123,6 +132,61 @@ gcp-create-preemptible: ## Create preemptible VM (cheaper, can be terminated)
 		--scopes=cloud-platform \
 		--provisioning-model=SPOT \
 		--metadata-from-file=startup-script=scripts/gcp-startup.sh
+
+# GPU VM settings
+GPU_MACHINE_TYPE := n1-standard-8
+GPU_TYPE := nvidia-tesla-t4
+GPU_COUNT := 1
+GPU_ZONE := us-central1-a
+
+.PHONY: gcp-create-gpu
+gcp-create-gpu: ## Create GPU VM for JAX/ML work
+	gcloud compute instances create $(VM_NAME)-gpu \
+		--project=$(PROJECT_ID) \
+		--zone=$(GPU_ZONE) \
+		--machine-type=$(GPU_MACHINE_TYPE) \
+		--accelerator=type=$(GPU_TYPE),count=$(GPU_COUNT) \
+		--image-family=ubuntu-2204-lts \
+		--image-project=ubuntu-os-cloud \
+		--boot-disk-size=150GB \
+		--boot-disk-type=pd-ssd \
+		--scopes=cloud-platform \
+		--maintenance-policy=TERMINATE \
+		--metadata-from-file=startup-script=scripts/gcp-startup-gpu.sh
+	@echo "==> GPU VM created. Wait ~5 min for NVIDIA drivers, then 'make gcp-ssh-gpu'"
+
+.PHONY: gcp-create-gpu-spot
+gcp-create-gpu-spot: ## Create spot GPU VM (much cheaper, can be preempted)
+	gcloud compute instances create $(VM_NAME)-gpu \
+		--project=$(PROJECT_ID) \
+		--zone=$(GPU_ZONE) \
+		--machine-type=$(GPU_MACHINE_TYPE) \
+		--accelerator=type=$(GPU_TYPE),count=$(GPU_COUNT) \
+		--image-family=ubuntu-2204-lts \
+		--image-project=ubuntu-os-cloud \
+		--boot-disk-size=150GB \
+		--boot-disk-type=pd-ssd \
+		--scopes=cloud-platform \
+		--maintenance-policy=TERMINATE \
+		--provisioning-model=SPOT \
+		--metadata-from-file=startup-script=scripts/gcp-startup-gpu.sh
+	@echo "==> Spot GPU VM created. Wait ~5 min for NVIDIA drivers, then 'make gcp-ssh-gpu'"
+
+.PHONY: gcp-ssh-gpu
+gcp-ssh-gpu: ## SSH into GPU VM
+	gcloud compute ssh $(VM_NAME)-gpu --project=$(PROJECT_ID) --zone=$(GPU_ZONE)
+
+.PHONY: gcp-stop-gpu
+gcp-stop-gpu: ## Stop GPU VM
+	gcloud compute instances stop $(VM_NAME)-gpu --project=$(PROJECT_ID) --zone=$(GPU_ZONE)
+
+.PHONY: gcp-start-gpu
+gcp-start-gpu: ## Start GPU VM
+	gcloud compute instances start $(VM_NAME)-gpu --project=$(PROJECT_ID) --zone=$(GPU_ZONE)
+
+.PHONY: gcp-delete-gpu
+gcp-delete-gpu: ## Delete GPU VM
+	gcloud compute instances delete $(VM_NAME)-gpu --project=$(PROJECT_ID) --zone=$(GPU_ZONE)
 
 .PHONY: gcp-ssh
 gcp-ssh: ## SSH into GCP VM

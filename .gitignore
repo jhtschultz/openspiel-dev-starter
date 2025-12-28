@@ -1,6 +1,9 @@
 # OpenSpiel source (cloned separately)
 open_spiel/
 
+# Work directory (separate repo)
+work/
+
 # Experiments output
 experiments/results/
 experiments/*.log

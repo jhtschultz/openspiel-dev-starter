@@ -49,15 +49,16 @@ apt-get install -y \
 
 # Create workspace directory and clone OpenSpiel
 echo "==> Setting up workspace..."
-mkdir -p /home/$MAIN_USER/workspace
-cd /home/$MAIN_USER/workspace
+WORKSPACE="/home/$MAIN_USER/workspace"
+mkdir -p "$WORKSPACE"
+chown $MAIN_USER:$MAIN_USER "$WORKSPACE"
 
-if [ ! -d "open_spiel" ]; then
+if [ ! -d "$WORKSPACE/open_spiel" ]; then
     echo "==> Cloning OpenSpiel..."
-    sudo -u $MAIN_USER git clone https://github.com/google-deepmind/open_spiel.git open_spiel
+    sudo -u $MAIN_USER git clone https://github.com/google-deepmind/open_spiel.git "$WORKSPACE/open_spiel"
 fi
 
-chown -R $MAIN_USER:$MAIN_USER /home/$MAIN_USER/workspace
+chown -R $MAIN_USER:$MAIN_USER "$WORKSPACE"
 
 echo "==> Startup script completed at $(date)"
 echo "==> Run 'make gcp-setup' locally to finish setup, then 'make gcp-dev' to start working"
