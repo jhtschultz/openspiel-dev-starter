@@ -13,13 +13,16 @@ services:
     volumes:
       # Mount your code - edits persist, no rebuild needed
       - ./open_spiel:/home/dev/open_spiel
-      
+
       # CRITICAL: Persist build artifacts across container restarts
       # First build is slow, subsequent builds are incremental
       - build-cache:/home/dev/open_spiel/build
-      
+
       # Mount experiments/scratch work
       - ./experiments:/home/dev/experiments
+
+      # Mount work directory for JAX experiments
+      - ./work:/home/dev/work
       
       # Optional: mount your dotfiles if you prefer live-editing them
       # - ~/.vimrc:/home/dev/.vimrc:ro
